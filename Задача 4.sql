@@ -1,142 +1,13 @@
 
-/*
-select first_name, last_name 
-from staff
-where first_name ilike 'A%A'
-
-select distinct extract(mounth from created_date)
-from orders
-
-select product_id, round(price - ((price * 20) / 120), 2) 
-from product
-
-select city
-from city
-where city like '__q%'
-
-select created_date::time
-from orders
-
-select *
-from product
-where product like '% %'
-
-select order_id, amount, discount, amount - ((100 * discount) / 100::numeric) 
-from orders
-
-select *
-from product
-where price >= 100 and char_length(product) = 10
-
-select *
-from customer
-where char_length(first_name) = char_length(last_name) and left(first_name, 1) = left(last_name, 1) 
-
-select count(*) as total 
-from city
-where left(city, 1) = right(city, 1)
-
-select count(*) as total
-from product
-where not deleted 
-
-
-select count(*) 
-from orders
-where amount between 200 and 215
-
-
-select *
-from orders
-where discount > 3
-
-select count(*) as total
-from city
-where left(city, 1) = right(city, 1)
-
-*/
-
-/*
-select first_name as "Имя", last_name as "Фамилия", a.address 
-from customer c 
-join address a on a.address_id = c.address_id 
-
-select first_name as "Имя", last_name as "Фамилия", a.address as "Адрес", c2.city as "Город"
-from customer c 
-join address a on a.address_id = c.address_id 
-join city c2 on a.city_id = c2.city_id 
-
-select count(*)
-from category c 
-join product p on c.category_id = p.category_id 
-where c.category = 'Музыка'
-
-select c.first_name, c.last_name 
-from customer c 
-join address a on a.address_id = c.address_id 
-join city c2 on c2.city_id = a.city_id 
-where c2.city  = 'Aden'
-
-select count(*)
-from staff s 
-join "structure" s2 on s.unit_id = s2.unit_id 
-where s2.unit = 'Группа розничных платежей'
-
-select avg(o.amount) 
-from customer c 
-join orders o on o.customer_id = c.customer_id 
-where c.last_name ilike 'a%'
-
-select max(price) 
-from product p 
-where price > 0 and price < 50
-
-select c.category 
-from category c 
-join product p on c.category_id = p.category_id 
-group by c.category_id 
-having count(*) > 30
-
-select count(*) 
-from orders o 
-/*where not deleted and o.delivery_id is not null*/
-
-select count(*) 
-from orders o 
-join customer c on c.customer_id = o.customer_id 
-join address a on a.address_id = c.address_id 
-join city c2 on c2.city_id = a.address_id 
-where city = 'El Alto'
-
-select sum(opl.amount)
-from orders o 
-join customer c on c.customer_id = o.customer_id 
-join order_product_list opl on opl.order_id = o.order_id 
-join product p on p.product_id = opl.product_id 
-where c.first_name = 'Linda' and c.last_name = 'Williams' and p.product = 'Черепаха'
-
-select count(distinct customer_id)
-from category c 
-join product p on c.category_id = p.category_id 
-join order_product_list opl on opl.product_id = p.product_id 
-join orders o on o.order_id = opl.order_id 
-where c.category = 'Игрушки'
-
-select count(*)
-from customer c
-join orders o on c.customer_id = o.customer_id
-join address a on a.address_id = c.address_id
-join city c2 on a.city_id = c2.city_id
-where c2.city = 'El Alto'
-*/
-
-========== Задача 4 ==========
+--Сделайте сквозную нумерацию товаров в порядке увеличения стоимости товаров
 select *, row_number() over (order by price)
 from product
 
+--На какую сумму увеличивается или уменьшается стоимость товара относительно предыдущей стоимости, если делать сортировку по идентификатору товара
 select product_id, price, price  - lag(price) over (order by product_id)
 from product
 
+--В виде одной строки выведите фамилию и имя всех покупателей, которые купили на наименьшую сумму
 select concat(c.last_name, ' ', c.first_name)
 from (
 	select customer_id, sum(amount), dense_rank() over (order by sum(amount) asc)
@@ -145,6 +16,7 @@ from (
 join customer c on c.customer_id = t.customer_id
 where dense_rank = 1
 
+--В виде одной строки выведите фамилию и имя всех покупателей, которые купили на наименьшую сумму
 select concat(last_name, ' ', first_name)
 from customer
 where customer_id in (
@@ -157,23 +29,30 @@ where customer_id in (
 		group by customer_id
 		order by 1 
 		limit 1))
-		
+
+--Выведите названия всех товаров и общее количество этих товаров в заказах		
 select p.product, opl.sum
 from product p
 left join (
 	select product_id, sum(amount)
 	from order_product_list 
 	group by product_id) opl on opl.product_id = p.product_id
-	
+
+--Получите накопительный итог стоимости заказов по каждому пользователю в отдельности (сортировка по идентификатору заказа)	
 select order_id, customer_id, amount, sum(amount) over (partition by customer_id order by order_id)
 from orders 
 
+--Выведите данные по 5 заказу каждого пользователя (сортировка по идентификатору заказа)
 select *
 from (
 select *, row_number() over (partition by customer_id order by order_id)
 from orders) t
 where row_number = 5
 
+--Получите среднее значение товаров в заказе для каждого пользователя.
+--Добавьте информацию по заказам и пользователям.
+--Получите среднее значение среднего значения товаров в заказе для каждого пользователя.
+--Сделайте сортировку по идентификатору пользователя
 select c.customer_id, avg(opl.avg)
 from (
 	select order_id, avg(amount)
@@ -184,6 +63,7 @@ join customer c on c.customer_id = o.customer_id
 group by c.customer_id
 order by c.customer_id
 
+--Найдите категорию товара, у которой наибольшее процентное отношение количества товаров от общего количества товаров
 select round(max(res), 3)
 from (
 select c.category_id, count(*) * 100. / (select count(*) from product) res
@@ -191,6 +71,8 @@ from product p
 join category c on p.category_id = c.category_id
 group by c.category_id) t
 
+--Из какой категории или категорий куплено на наибольшую сумму, без учета скидки?
+--Так как есть вероятность получения нескольких категорий, в решении можно использовать ранжирование.
 select category
 from category
 where category_id in (
@@ -202,16 +84,12 @@ join product p on p.product_id = opl.product_id
 group by p.category_id) t
 where dense_rank = 1)
 
+--Были ли ситуации, когда стоимость заказа для каждого пользователя в отдельности была выше ровно на 25%
+--по отношению к предыдущему заказу(сортировка по идентификатору заказа)?
+--Если работать с заказами каждого пользователя в отдельности
 select *
 from (
 select order_id, customer_id, amount, lag(amount) over (partition by customer_id order by order_id),
 amount * 100 / lag(amount) over (partition by customer_id order by order_id) - 100 as diff
 from orders) t
 where diff = 25
-
-select round(max(res))
-from (
-	select c.category_id, count(*) * 100 /(select count(*) from product) res
-	from product p
-	join category c on p.category_id = c.category_id
-	group by c.category_id) t
